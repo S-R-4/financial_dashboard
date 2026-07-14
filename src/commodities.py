@@ -135,5 +135,5 @@ def render_commodities_section() -> None:
 
     st.plotly_chart(
         figure,
-        use_container_width=True,
+        width="stretch",
     )

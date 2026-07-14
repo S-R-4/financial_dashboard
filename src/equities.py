@@ -173,5 +173,5 @@ def render_equities_section() -> None:
 
     st.plotly_chart(
         candlestick,
-        use_container_width=True,
+        width="stretch",
     )
