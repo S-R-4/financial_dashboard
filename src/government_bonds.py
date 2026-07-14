@@ -86,8 +86,9 @@ def fetch_government_bond_yield(
         return bond_data
 
     except Exception as error:
-        print(f"FRED download failed for {series_id}: {error}")
-        return pd.DataFrame()
+        raise RuntimeError(
+            f"FRED download failed for {series_id}: {error}"
+        ) from error
 
 
 def render_government_bonds_section() -> None:
@@ -108,11 +109,16 @@ def render_government_bonds_section() -> None:
     bond_summaries = []
 
     for bond_name, bond_settings in GOVERNMENT_BONDS.items():
-        history = fetch_government_bond_yield(
-            series_id=bond_settings["series_id"],
-            start_date=start_date,
-            end_date=end_date,
-        )
+        try:
+            history = fetch_government_bond_yield(
+                series_id=bond_settings["series_id"],
+                start_date=start_date,
+                end_date=end_date,
+            )
+
+        except Exception as error:
+            print(error)
+            continue
 
         if history.empty or len(history) < 2:
             continue
