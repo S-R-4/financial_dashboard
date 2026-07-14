@@ -3,7 +3,8 @@ import datetime as dt
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from pandas_datareader import data as web
+import requests
+from io import StringIO
 
 
 GOVERNMENT_BONDS = {
@@ -58,28 +59,34 @@ def fetch_government_bond_yield(
     start_date: dt.datetime,
     end_date: dt.datetime,
 ) -> pd.DataFrame:
-    """
-    Download one government bond yield series from FRED.
-    """
+
+    url = (
+        "https://fred.stlouisfed.org/graph/fredgraph.csv"
+        f"?id={series_id}"
+        f"&cosd={start_date:%Y-%m-%d}"
+        f"&coed={end_date:%Y-%m-%d}"
+    )
 
     try:
-        bond_data = web.DataReader(
-            series_id,
-            "fred",
-            start_date,
-            end_date,
+        response = requests.get(url, timeout=20)
+        response.raise_for_status()
+
+        bond_data = pd.read_csv(StringIO(response.text))
+
+        bond_data.columns = ["Date", "Yield"]
+        bond_data["Date"] = pd.to_datetime(bond_data["Date"])
+        bond_data["Yield"] = pd.to_numeric(
+            bond_data["Yield"],
+            errors="coerce",
         )
 
-        bond_data = bond_data.dropna()
-
-        if bond_data.empty:
-            return pd.DataFrame()
-
-        bond_data.columns = ["Yield"]
+        bond_data = bond_data.dropna(subset=["Yield"])
+        bond_data = bond_data.set_index("Date")
 
         return bond_data
 
-    except Exception:
+    except Exception as error:
+        print(f"FRED download failed for {series_id}: {error}")
         return pd.DataFrame()
 
 
